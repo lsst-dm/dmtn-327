@@ -10,7 +10,7 @@ organization.ror = "https://ror.org/048g3cy84"
 license.id = "CC-BY-4.0"
 
 [technote.status]
-state = "draft"
+state = "stable"
 
 [[technote.authors]]
 name.given = "Ross"
@@ -21,3 +21,13 @@ orcid = "https://orcid.org/0009-0000-9679-3911"
 name = "NSF NOIRLab"
 internal_id = "RubinOps"
 address = "Tucson"
+
+[[technote.authors]]
+name.given = "Arianna"
+name.family = "Ranabhat"
+internal_id = "ranabhata"
+orcid = "https://orcid.org/0000-0002-6112-9778"
+[[technote.authors.affiliations]]
+name = "Macquarie University"
+internal_id = "AAO"
+address = "North Ryde"
