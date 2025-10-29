@@ -12,6 +12,8 @@ Our Jenkins pipelines are critical components to our software development. As th
 
 The Jenkins system was initially running in a hybrid location, with managers on SLAC infrastructure and workers on GKE. The GKE cluster consisted of a node pool with 6 nodes, each running on an n2-highmem-32 machine type. This migration led to a significant increase in monthly expenses, ranging from $9,000 to $12,000. To support aarch64 distribution, an additional node pool with 6 nodes running on T2a-highmem-32 machine type was added, further increasing the monthly costs to $18,000 to $20,000. During this period, the entire system was moved onto GKE, eliminating the hybrid approach, but increasing our expenses.
 
+```{figure} /assets/chart.png
+```
 ## Optimization Strategies:
 
 1. Machine Type Selection:
@@ -27,6 +29,8 @@ The Jenkins system was initially running in a hybrid location, with managers on 
 
 The implemented optimizations reduced the monthly costs to approximately $5,000, while maintaining the system's requirements and improving overall performance. However, these changes introduced a slightly longer total time to compute due to the increased time required for workers to start compared to having machines waiting for work. Additionally, a custom caching mechanism was developed, adding complexity and a minor increase in job start time. Despite these trade-offs, the optimized system achieved a 3-40 minute reduction in job execution time, depending on the specific job and caching.
 
+``` {figure} /assets/chart2.png
+```
 ## Future Improvements:
 
 To further optimize the infrastructure, several improvements are being considered:
