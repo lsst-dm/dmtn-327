@@ -10,7 +10,7 @@ Our Jenkins pipelines are critical components to our software development. As th
 
 ## Initial Migration and Challenges
 
-The Jenkins system was initially running in a hybrid configuration, with controllers on SLAC infrastructure and workers on GKE. The GKE cluster consisted of a node pool with six nodes using the n2-highmem-32 machine type. Hosting the Jenkins workers on GKE comes with significant expenses, ranging from \$9,000 to \$12,000 per month. To support aarch64 distribution, an additional node pool with 6 nodes running on t2a-highmem-32 machine type was added, further increasing the monthly costs to \$18,000 to \$20,000.
+The Jenkins system was initially running in a hybrid configuration, with controllers on SLAC infrastructure and workers on GKE. The GKE cluster consisted of a node pool with six nodes using the n2-highmem-32 (x86) machine type. Hosting the Jenkins workers on GKE comes with significant expenses, ranging from \$9,000 to \$12,000 per month. To support aarch64 distribution, an additional node pool with 6 nodes running on t2a-standard-32 (aarch64) machine type was added, further increasing the monthly costs to \$18,000 to \$20,000.
 
 At this stage, the Jenkins controllers still operated at SLAC and communicated with agents at GKE via port tunneling and web-sockets. The connection between SLAC and GKE suffered from intermittent disconnections, particularly when high load caused network interruptions. These failures resulted in aborted builds, wasted compute time, and frequent manual re-runs, contributing to business costs, decreased productivity, and increased time debugging. To address these issues, both the production and development Jenkins controllers were migrated to the GKE cluster. This eliminated the hybrid design and allowed for complete in-cluster networking at GKE, removing the use for port tunneling or web-sockets. 
 
@@ -20,23 +20,24 @@ The following figure shows the aforementioned increases in monthly expenses.
 
 ```{figure} /assets/chart.png
 ```
+*Monthly Google Cloud Jenkins costs for 2025, with aarch64 enabled in February.*
 
 ## Optimization Strategies
 
-1. **Machine Type Selection:**
-   To improve the performance per dollar ratio, the T2a machine type was replaced with the more powerful c4a-highmem-32 machine type. Although marginally cheaper, this change allowed for better resource utilization and faster task completion. Additionally, the linux x86 agents were switched from n2-highmem-32 to c4d-highmem-32, which, despite being slightly more expensive, allowed for faster job completion, ultimately leading to cost savings.
-   
-2. **Autoscaling Pods:**
-   By migrating to autoscaling pods, the system was able to dynamically allocate resources based on the actual workload, eliminating the costs associated with idle compute. This change resulted in a monthly savings of approximately \$4,000 to \$5,000.
+1. **Autoscaling Pods:**
+   By migrating to autoscaling pods, the system was able to dynamically allocate resources based on the actual workload, eliminating the costs associated with idle compute. This means we are not charged when no one is submitting jobs, including over weekends and holidays. This change resulted in a monthly savings of approximately \$4,000 to \$5,000.
+
+2. **Machine Type Selection:**
+   To improve the performance per dollar ratio, the T2a (aarch64) machine type was replaced with the more powerful c4a-highmem-32 (aarch64) machine type. This change allowed for better resource utilization and faster task completion. Additionally, the linux x86 agents were switched from n2-highmem-32 (x86) to c4d-highmem-32 (x86), which, despite being slightly more expensive, allowed for faster job completion, ultimately leading to cost savings.
 
 3. **Storage:**
    To support the auto-scaling model, the ephemeral storage on nodes was increased from 100GB to 300GB, allowing each node to run a single agent with its own temporary workspace. This allowed us to move away from Persistent Volume based storage for the linux and aarch64 agents (previously 1500GB for each of the twelve agents), simplifying storage management and cutting associated costs. Additionally, the Persistent Volume sizes for all manager and snowflake agents were reduced to 300GB. 
 
 4. **Dedicated Node Pools:**
-   A new node pool was created using the n2-standard-4 machine type for longer-running tasks, such as managers, Vault and cert-manager, which require fewer resources compared to other tasks. These were migrated from an n2-highmem-32 node pool. Snowflake agents, which run nightly and weekly clean builds and official releases, have their own node pool to ensure node availability for these critical jobs. 
+   A new node pool was created using the n2-standard-4 (x86) machine type for longer-running tasks, such as managers, Vault and cert-manager, which require fewer resources compared to other tasks. These were migrated from an n2-highmem-32 (x86) node pool. Snowflake agents, which run nightly and weekly clean builds and official releases, have their own node pool to ensure node availability for these critical jobs. 
 
 5. **Custom Caching:**
-   Due to the architecture of the auto-agents, builds started from clean environments. Custom caching was implemented and substantially reduced job execution times.
+   Due to the architecture of the auto-agents, builds started from clean environments. Custom caching was implemented and substantially reduced job execution times by allowing us to download a cached conda environment and git repos from the most recent nightly.
 
 ## Results and Trade-offs
 
@@ -46,13 +47,14 @@ The following figure shows expense reduction per month due to these changes.
 
 ``` {figure} /assets/chart2.png
 ```
+*Monthly Google Cloud Jenkins costs for 2025, with implementation of optimization strategies.*
 
 ## Future Improvements
 
 To further optimize the infrastructure, several improvements are being considered:
 
 1. **Workload Separation:**
-   Creating additional node pools to separate workloads based on resource requirements, allowing for better allocation and tracking of expenses.
+   Tracking the costs of the system in a more fine-grained manner by creating additional node pools to separate workloads will give us a much better idea of the part of the system that could potentially deliver the most savings with future optimizations.
 
 2. **Quick Small Work Node Pool:**
    Implementing a dedicated node pool with faster chips for quick, small tasks, such as API calls to minimize idle time.
@@ -67,4 +69,7 @@ To further optimize the infrastructure, several improvements are being considere
    Reviewing CPU and memory usage across the containers and pods to lower request values where possible and reduce over-allocation.
 
 7. **Integrate better monitoring tools:**
-   Add better tools to track expenses and bottlenecks. Jenkins does not come with great tooling for tracking pipelines and job durations. Implementing a tool like Grafana can provide some much needed insights.
+   Adding better tools to track expenses and bottlenecks. Jenkins does not come with great tooling for tracking pipelines and job durations. Implementing a tool like Grafana can provide some much needed insights.
+
+8. **Move workloads back to SLAC:**
+   Removing Docker-in-Docker from our workflow would allow us to move the x86 linux workers to SLAC, saving costs and giving access to unreleased data. Docker-in-Docker cannot run at SLAC because it requires privileged access, which breaks container isolation and poses security risks to shared infrastructure.
